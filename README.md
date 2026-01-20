@@ -1,2 +1,2 @@
 # bisv-quillbot
-The Discord bot for BISV's Journalism Club
+Will write documentation at a later point
