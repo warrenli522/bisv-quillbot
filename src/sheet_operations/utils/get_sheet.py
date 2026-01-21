@@ -9,7 +9,7 @@ def get_sheet() -> DataFrame:
     """
     Retrieves the sheet data and adds cycle information.
     
-    :return: A DataFrame representing the sheet data with cycle information
+    :return: A DataFrame representing the sheet data with cycle information in the 'CYCLE' column
     :rtype: DataFrame
     """
     sheet_id = os.getenv("SHEET_ID")
