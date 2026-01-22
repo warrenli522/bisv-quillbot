@@ -185,3 +185,6 @@ cython_debug/
 
 #data files
 data/
+
+#random mac file
+**/.DS_Store

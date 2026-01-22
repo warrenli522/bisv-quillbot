@@ -1,4 +1,3 @@
-import json
 from datetime import datetime, timezone
 from typing import Optional
 from pandas import DataFrame
@@ -28,10 +27,8 @@ def get_edits(sheet: DataFrame, author: Optional[str] = None,
     if author and editor:
         raise ValueError("Cannot filter by both author and editor simultaneously.")
 
-    with open("data/cycle_info.json", "r", encoding="utf-8") as f:
-        due_dates = json.load(f)
     if author:
-        sheet = sheet[sheet["AUTHORS"].str.contains(author, regex=False)]
+        sheet = sheet[sheet["AUTHORS"].apply(lambda authors: author in authors)] #type: ignore
     if editor:
         editor_cols = ["SECTION EDITOR", "EIC"]
         mask = sheet[editor_cols].stack().str.contains(editor, regex=False)
@@ -39,9 +36,9 @@ def get_edits(sheet: DataFrame, author: Optional[str] = None,
             level=0).any().reindex(sheet.index, fill_value=False)]
 
     cur_time = datetime.now(timezone.utc)
-    sheet = annotate_status(sheet, due_dates, cur_time=cur_time)
+    sheet = annotate_status(sheet, cur_time=cur_time)
     if late:
-        sheet = sheet[sheet["late"].dropna()]
+        sheet = sheet[sheet["late"].fillna(False)] #type: ignore
     if author:
         author_statuses = [ArticleStatus.SECTION_REVISE.value, ArticleStatus.EIC_REVISE.value,
                            ArticleStatus.SHAPIRO_REVISE.value]

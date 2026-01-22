@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional
 from datetime import datetime, timezone
+import json
 
 import pandas as pd
 from pandas import DataFrame
@@ -48,8 +49,8 @@ def get_article_status_helper(article: pd.Series, due_dates: Dict[str, Any],
         ArticleStatus.SECTION_REVISE.value: "sectionRevisedDue",
         ArticleStatus.EIC.value: "eicEditsDue",
         ArticleStatus.EIC_REVISE.value: "eicRevisedDue",
-        ArticleStatus.SHAPIRO_EDIT.value: "shapiroReviseDue",
-        ArticleStatus.SHAPIRO_REVISE.value: "shapiroReviseDue",
+        ArticleStatus.SHAPIRO_EDIT.value: "shapiroEditsDue",
+        ArticleStatus.SHAPIRO_REVISE.value: "shapiroRevisedDue",
     }
     due_key = due_key_map.get(status)
     if not due_key:
@@ -60,21 +61,20 @@ def get_article_status_helper(article: pd.Series, due_dates: Dict[str, Any],
     return pd.Series([status, cur_time > datetime.fromisoformat(cycle[due_key])],
                      index=["status", "late"])
 
-def annotate_status(sheet: DataFrame, due_dates: Dict[str, Any],
-                          cur_time: Optional[datetime] = None) -> DataFrame:
+def annotate_status(sheet: DataFrame, cur_time: Optional[datetime] = None) -> DataFrame:
     """
     Returns an annotated article sheet with "status" and "late" columns. 
     Late is a bool (is late/not late) and status is an ArticleStatus enum.
     
     :param sheet: The article sheet
     :type sheet: DataFrame
-    :param due_dates: The cycle info with due dates
-    :type due_dates: Dict[str, Any]
     :param cur_time: The time to check lateness against; if None, uses the current time.
     :type cur_time: Optional[datetime]
     :return: The annotated article sheet with "status" and "late" columns
     :rtype: DataFrame
     """
+    with open("data/cycle_info.json", "r", encoding="utf-8") as f:
+        due_dates = json.load(f)
     sheet.loc[:, ["status", "late"]] = sheet.apply(get_article_status_helper, axis=1,
                                               due_dates=due_dates,
                                               cur_time=cur_time, result_type="expand")
