@@ -4,7 +4,9 @@ import json
 
 import pandas as pd
 from pandas import DataFrame
+
 from src.sheet_operations.enums.article_status import ArticleStatus
+from src.sheet_operations import logger
 
 def get_article_status_helper(article: pd.Series, due_dates: Dict[str, Any],
                        cur_time: Optional[datetime] = None) -> pd.Series:
@@ -17,12 +19,10 @@ def get_article_status_helper(article: pd.Series, due_dates: Dict[str, Any],
     :type article: pd.Series
     :param cur_time: The time to check lateness against; if None, uses the current time.
     :type cur_time: Optional[datetime]
-    :return: A tuple with the article status and whether it is late
+    :return: A tuple with the article status (fist incomplete stage) and whether it is late
     :rtype: Tuple[ArticleStatus, bool]
     """
-    if article["Published"]:
-        status = ArticleStatus.PUBLISHED.value
-    elif not article["DRAFT1"]:
+    if not article["DRAFT1"]:
         status = ArticleStatus.DRAFT.value
     elif not article["COLUMN EDIT"]:
         status = ArticleStatus.SECTION.value
@@ -75,7 +75,9 @@ def annotate_status(sheet: DataFrame, cur_time: Optional[datetime] = None) -> Da
     """
     with open("data/cycle_info.json", "r", encoding="utf-8") as f:
         due_dates = json.load(f)
+    logger.debug("Raw Sheet: %s", sheet.to_string())
     sheet.loc[:, ["status", "late"]] = sheet.apply(get_article_status_helper, axis=1,
                                               due_dates=due_dates,
                                               cur_time=cur_time, result_type="expand")
+    logger.debug("Annotated Sheet: %s", sheet.to_string())
     return sheet

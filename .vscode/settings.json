@@ -1,6 +1,8 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:conda",
     "python-envs.defaultPackageManager": "ms-python.python:conda",
-    "python-envs.pythonProjects": [],
-    "pylint.args": ["--disable=C0114"]
+    "pylint.args": [
+        "--disable=C0114"
+    ],
+    "python.analysis.autoImportCompletions": true
 }

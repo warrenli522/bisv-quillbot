@@ -2,6 +2,7 @@ from enum import Enum
 
 class ArticleStatus(Enum):
     """Status of a given article"""
+    INCOMPLETE = "Incomplete"
     DRAFT = "Draft"
     SECTION = "Section Edits"
     SECTION_REVISE = "Section Edit Revision"

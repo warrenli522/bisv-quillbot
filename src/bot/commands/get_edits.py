@@ -30,17 +30,17 @@ async def get_edits_command(interaction: discord.Interaction, author: Optional[s
             )
             return
 
-    await interaction.response.defer()
+    await interaction.response.defer(ephemeral=True)
     sheet = get_sheet()
     incomplete_edits = get_edits(sheet, author=author, late=False)
     if not incomplete_edits.empty:
         message = f"Below are the articles with incomplete edits for **{author}**:\n"
         for _, article in incomplete_edits.iterrows():
             message += (f"- **Cycle {article['CYCLE']}**: "
-                    f"'{article['ARTICLE TITLE']}' (waiting on {article['status']})")
+                    f"`*{article['ARTICLE TITLE']}*` (waiting on {article['status']})")
             if article["late"]:
                 message += " ⏰ **LATE**"
             message += "\n"
-        await interaction.followup.send(message)
+        await interaction.followup.send(message, ephemeral=True)
     else:
         await interaction.followup.send('You have no incomplete edits :)', ephemeral=True)

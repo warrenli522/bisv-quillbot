@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 import json
 import logging
+import os
 
 import discord
 import pandas as pd
@@ -35,7 +36,10 @@ async def schedule_cycle_reminder(cycle: int, stage: ArticleStatus, due_date: da
                 cycle, stage.value, due_date.isoformat())
     sheet = get_sheet()
     cycle_data = get_cycle_report(sheet, cycle)
-    with open("data/member_info.json", "r", encoding="utf-8") as f:
+    member_data_path = os.getenv("MEMBER_DATA_FILEPATH")
+    if member_data_path is None:
+        raise ValueError("MEMBER_DATA_FILEPATH environment variable not set.")
+    with open(member_data_path, "r", encoding="utf-8") as f:
         author_data = json.load(f)
 
     #get discord IDs to send reminders to
@@ -47,16 +51,19 @@ async def schedule_cycle_reminder(cycle: int, stage: ArticleStatus, due_date: da
             user = await client.fetch_user(discord_id)
             if user:
                 try:
+                    logger.debug("Notifying user with Discord ID %s and name `%s` for Cycle %d draft reminder",
+                                 discord_id, name, cycle)
                     await user.send(
                         f"This is a reminder that your draft for **Cycle {cycle}** is due on "
                         f"{due_date.strftime('%m/%d')}, please make sure to "
                         f"complete it as soon as possible!"
                     )
                 except discord.Forbidden:
-                    logger.info("Could not send cycle reminder DM to" \
-                        "user with Discord ID `%s`", discord_id)
+                    logger.warning("Could not send cycle reminder DM to" \
+                        "user with Discord ID `%s` and name `%s`", discord_id, name)
     else:
         articles = cycle_data["unedited_articles"]
+        logger.debug("Articles to check for reminders: %s", articles)
         articles = articles.loc[articles["status"] == stage.value]
 
         if stage == ArticleStatus.SECTION:
@@ -77,26 +84,33 @@ async def schedule_cycle_reminder(cycle: int, stage: ArticleStatus, due_date: da
                 user = await client.fetch_user(discord_id)
                 if user:
                     try:
+                        logger.debug("Notifying editor with Discord ID %s and name `%s` for article \"%s\"",
+                                     discord_id, editor, article["ARTICLE TITLE"])
                         await user.send(
                             f"This is a reminder that your assigned **{stage.value}** for the "
                             f"**Cycle {cycle}** article \"{article['ARTICLE TITLE']}\" "
                             f"have not been completed! Due date: {due_date.strftime('%m/%d')}"
                         )
                     except discord.Forbidden:
-                        logger.info("Could not send cycle reminder DM to user with ID %d",
-                                    discord_id)
+                        logger.info("Could not send cycle reminder DM to user with ID %s and name `%s`",
+                                    discord_id, editor)
             else:
                 #there may be multiple authors, notify each
                 discord_ids = [author_data[author]["discordID"] for author in article["AUTHORS"]]
+                logger.debug("Notifying authors with Discord IDs %s and names %s for article \"%s\"",
+                             discord_ids, article["AUTHORS"], article["ARTICLE TITLE"])
                 for disc_id in discord_ids:
                     user = await client.fetch_user(disc_id)
                     if user:
                         try:
+                            logger.debug("Notifying user with Discord ID %s and name `%s` for article \"%s\" stage %s reminder",
+                                         disc_id, article["AUTHORS"][discord_ids.index(disc_id)],
+                                         article["ARTICLE TITLE"], stage.value)
                             await user.send(
                                 f"This is a reminder that your **{stage.value}** for the "
                                 f"**Cycle {cycle}** article \"{article['ARTICLE TITLE']}\" "
                                 f"have not been completed! Due date: {due_date.strftime('%m/%d')}"
                             )
                         except discord.Forbidden:
-                            logger.info("Could not send cycle reminder DM to user with ID %d",
-                                        disc_id)
+                            logger.warning("Could not send cycle reminder DM to user with ID %s and name `%s`",
+                                        disc_id, article["AUTHORS"][discord_ids.index(disc_id)])

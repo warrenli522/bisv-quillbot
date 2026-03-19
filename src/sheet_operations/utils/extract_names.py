@@ -1,4 +1,5 @@
 import json
+import os
 from typing import List, Tuple
 
 #NOTE: this method is quite inefficient (but foolproof)
@@ -12,7 +13,10 @@ def extract_names(author_str: str) -> Tuple[str, ...]:
     :rtype: Tuple[str]
     """
     author_str = author_str.lower().strip()
-    with open("data/member_info.json", "r", encoding="utf-8") as f:
+    member_data_path = os.getenv("MEMBER_DATA_FILEPATH")
+    if member_data_path is None:
+        raise ValueError("MEMBER_DATA_FILEPATH environment variable not set.")
+    with open(member_data_path, "r", encoding="utf-8") as f:
         author_names = json.load(f).keys()
 
     extracted_names: List[str] = []

@@ -39,6 +39,7 @@ async def set_cycle_due(interaction: discord.Interaction,
                        shapiro_revise: Optional[str],
                        send_reminders: bool = True):
     """Sets the due dates for a given article cycle."""
+    await interaction.response.defer(ephemeral=True)
     logger = logging.getLogger("discord")
     due_dates: Dict[str, str | None] = {
         "draftDue": due_date,
@@ -67,12 +68,7 @@ async def set_cycle_due(interaction: discord.Interaction,
             ephemeral=True
         )
         return
-    try:
-        clear_cycle_reminders(cycle)
-    except RuntimeError:
-        #previous cycle reminders currently being fired
-        logger.warning("Could not clear previous reminders for Cycle %s" \
-            "as they are currently being fired.", cycle)
+    clear_cycle_reminders(cycle)
     for date, offset in due_date_offsets.items():
         if due_dates[date]:
             try:
@@ -91,6 +87,7 @@ async def set_cycle_due(interaction: discord.Interaction,
     cycle_info[str(cycle)] = due_dates
     with open("data/cycle_info.json", "w", encoding="utf-8") as f:
         json.dump(cycle_info, f, indent=4)
+    logger.debug("Scheduling reminders")
     if send_reminders:
         possible_statuses = [ArticleStatus.DRAFT,
                              ArticleStatus.SECTION,
@@ -106,6 +103,6 @@ async def set_cycle_due(interaction: discord.Interaction,
             )
             cycle_reminders.append(task)
             task.add_done_callback(cycle_reminders.remove) #prevent stale tasks
-    await interaction.response.send_message(
+    await interaction.followup.send(
         f"Successfully set due dates for **Cycle {cycle}**.", ephemeral=True
     )

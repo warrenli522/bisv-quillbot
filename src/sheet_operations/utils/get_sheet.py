@@ -5,6 +5,7 @@ import pandas as pd
 from pandas import DataFrame
 
 from src.sheet_operations.utils.extract_names import extract_names
+from src.sheet_operations import logger
 
 def get_sheet() -> DataFrame:
     """
@@ -41,4 +42,5 @@ def get_sheet() -> DataFrame:
     df["AUTHORS"] = df["AUTHORS"].apply(extract_names) #type: ignore
     df["SECTION EDITOR"] = df["SECTION EDITOR"].str.lower().str.strip()
     df["EIC"] = df["EIC"].str.lower().str.strip()
+
     return df.reset_index(drop=True)

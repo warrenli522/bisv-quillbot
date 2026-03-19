@@ -1,9 +1,11 @@
 import json
-from typing import TypedDict
+from typing import TypedDict, Set
+import os
 
 from pandas import DataFrame, Series
 
 from src.sheet_operations.utils.annotate_status import annotate_status
+from src.sheet_operations import logger
 
 class CycleReport(TypedDict):
     """report of incomplete articles for a given cycle"""
@@ -39,16 +41,22 @@ def get_cycle_report(sheet: DataFrame, cycle: int) -> CycleReport:
     :rtype: CycleReport
     """
     cycle_articles = annotate_status(sheet[sheet["CYCLE"] == cycle])
-    with open("data/member_info.json", "r", encoding="utf-8") as f:
+    member_data_path = os.getenv("MEMBER_DATA_FILEPATH")
+    if member_data_path is None:
+        raise ValueError("MEMBER_DATA_FILEPATH environment variable not set.")
+    with open(member_data_path, "r", encoding="utf-8") as f:
         author_names = json.load(f).keys()
 
 
-    missing_articles = [name for name in author_names
-                        if not cycle_articles["AUTHORS"].str.contains(name).any()]
+    all_authors: Set[str] = set().union(*cycle_articles["AUTHORS"]) #type: ignore
+    missing_articles = [name for name in author_names if name not in all_authors]
     missing_articles = Series(missing_articles)
     incomplete_articles = cycle_articles[~cycle_articles["DRAFT1"]]
     unedited_articles = cycle_articles[cycle_articles["status"] != "Published"]
-
+    logger.debug("Cycle %d report: Missing: %s, Incomplete drafts: %s, Unedited: %s",
+        cycle, missing_articles.tolist(), incomplete_articles["AUTHORS"].tolist(),
+        unedited_articles["AUTHORS"].tolist()
+    )
     return {
         "cycle": cycle,
         "missing_articles": missing_articles,
